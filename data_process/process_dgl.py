@@ -5,8 +5,10 @@ import torch
 from feature_process import process_user_item_features
 
 # Read training and test data
-train_data = pd.read_csv('./food_DR/train.txt', sep=' ')
-test_data = pd.read_csv('./food_DR/test_ood.txt', sep=' ')
+#train_data = pd.read_csv('./food_DR/train.txt', sep=' ')
+#test_data = pd.read_csv('./food_DR/test_ood.txt', sep=' ')
+train_data = pd.read_csv('../dataset/txt/train.txt', sep=' ')
+test_data = pd.read_csv('../dataset/txt/test.txt', sep=' ')
 train_data.columns = ['user_id', 'item_id']
 test_data.columns = ['user_id', 'item_id']
 
