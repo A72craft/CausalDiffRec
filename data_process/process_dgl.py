@@ -1,68 +1,67 @@
-import numpy as np
 import pandas as pd
 import dgl
 import torch
-from feature_process import process_user_item_features
+import os
+import numpy as np
 
-# Read training and test data
-#train_data = pd.read_csv('./food_DR/train.txt', sep=' ')
-#test_data = pd.read_csv('./food_DR/test_ood.txt', sep=' ')
-train_data = pd.read_csv('../dataset/txt/train.txt', sep=' ')
-test_data = pd.read_csv('../dataset/txt/test.txt', sep=' ')
-train_data.columns = ['user_id', 'item_id']
-test_data.columns = ['user_id', 'item_id']
+# Ensure output directory exists
+os.makedirs('../dataset/review', exist_ok=True)
 
-# Print some information
-print("Maximum item code: {0}".format(train_data['item_id'].max()))
+# Read data
+train_data = pd.read_csv('../dataset/txt/training.txt', sep=' ', header=None, names=['user_id', 'item_id'])
+test_data = pd.read_csv('../dataset/txt/testing.txt', sep=' ', header=None, names=['user_id', 'item_id'])
 
-# Add offset
-train_data['item_id'] = train_data['item_id'] + train_data['user_id'].nunique()
-test_data['item_id'] = test_data['item_id'] + train_data['user_id'].nunique()
+# Create contiguous IDs for users and items using ONLY training data
+# Users
+unique_users = train_data['user_id'].unique()
+user_id_map = {old: new for new, old in enumerate(unique_users)}
+train_data['user_id'] = train_data['user_id'].map(user_id_map)
+test_data['user_id'] = test_data['user_id'].map(user_id_map).fillna(-1)  # Mark unknown users
 
-# Get the maximum user code and minimum item code in the training set
-max_user_id = train_data['user_id'].max()
-min_item_id = train_data['item_id'].min()
-print("Maximum user code: {0} and minimum item code: {1}".format(max_user_id, min_item_id))
+# Items
+unique_items = train_data['item_id'].unique()
+item_id_map = {old: new for new, old in enumerate(unique_items)}
+train_data['item_id'] = train_data['item_id'].map(item_id_map)
+test_data['item_id'] = test_data['item_id'].map(item_id_map).fillna(-1)  # Mark unknown items
 
-# Get the number of users and items in the training set
-num_users = train_data['user_id'].nunique()
-num_items = train_data['item_id'].nunique()
-max_item_id = train_data['item_id'].max()
-print("Number of users: {0} and number of items: {1}".format(num_users, num_items))
-print(max_item_id)
+# Offset items to come after all users
+num_users = len(unique_users)
+train_data['item_id'] += num_users
+test_data['item_id'] += num_users
 
-# Remove user-item interactions in the test set where the item code exceeds the maximum item code in the training set
-test_data = test_data[test_data['item_id'] <= max_item_id]
+# Filter test set (remove any interactions with unknown users/items)
+test_data = test_data[(test_data['user_id'] >= 0) & (test_data['item_id'] >= num_users)]
 
-# Print the size of the filtered test set
-print("Size of the filtered test set: ", test_data.shape[0])
+# Calculate ACTUAL number of nodes needed
+num_nodes = num_users + len(unique_items)
 
-# Create graph
-print(train_data)
-u, v = train_data['user_id'].values, train_data['item_id'].values
-print(u)
-print(v)
-trt_g = dgl.graph((u, v), num_nodes=max_user_id + num_items + 1)
-num_nodes = max_user_id + num_items + 1
-print(num_nodes)
+print("\n=== Corrected Statistics ===")
+print(f"Unique users: {num_users}")
+print(f"Unique items: {len(unique_items)}")
+print(f"Total nodes needed: {num_nodes}")
+print(f"  - Users: 0-{num_users-1}")
+print(f"  - Items: {num_users}-{num_nodes-1}")
 
-u, v = test_data['user_id'].values, test_data['item_id'].values
-tst_g = dgl.graph((u, v), num_nodes=max_user_id + num_items + 1)
+# Convert to numpy arrays before creating graph
+train_users = train_data['user_id'].to_numpy()
+train_items = train_data['item_id'].to_numpy()
+test_users = test_data['user_id'].to_numpy()
+test_items = test_data['item_id'].to_numpy()
 
-# Process user and item features
-user_features, item_features = process_user_item_features('./feature/user_feature.txt',
-                                                          './feature/item_feature.txt')
-print("Feature shapes:")
-print(user_features.shape)
-print(item_features.shape)
+# Create graphs
+train_g = dgl.graph((train_users, train_items), num_nodes=num_nodes)
+test_g = dgl.graph((test_users, test_items), num_nodes=num_nodes)
 
-# Add node features
-trt_g.ndata['feat'] = torch.cat([user_features, item_features], dim=0)
-tst_g.ndata['feat'] = torch.cat([user_features, item_features], dim=0)
+# Add features
+feature_dim = 128
+train_g.ndata['feat'] = torch.randn(num_nodes, feature_dim)
+test_g.ndata['feat'] = train_g.ndata['feat'].clone()
 
-# Print features of some nodes
-print("Node features for some users and items:")
+# Verify
+print("\n=== Graph Verification ===")
+print(f"Train graph: {train_g.number_of_nodes()} nodes, {train_g.number_of_edges()} edges")
+print(f"Test graph: {test_g.number_of_nodes()} nodes, {test_g.number_of_edges()} edges")
 
-# Save the graphs
-dgl.save_graphs("./food_causal/food_train_data.bin", trt_g)
-dgl.save_graphs("./food_causal/food_test_data.bin", tst_g)
+# Save graphs
+dgl.save_graphs("../dataset/review/review_train_data.bin", train_g)
+dgl.save_graphs("../dataset/review/review_test_data.bin", test_g)

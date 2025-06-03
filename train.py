@@ -37,7 +37,11 @@ def load_datasets(data_name):
         "douban": {
             "train": "./dataset/douban/douban_train_data.bin",
             "test": "./dataset/douban/douban_test_data.bin",
-        }  # Please add your own dataset path in there, and you need first add you dataset into ./dataset.
+        },  # Please add your own dataset path in there, and you need first add you dataset into ./dataset.
+        "review": {
+            "train": "./dataset/review/review_train_data.bin",
+            "test": "./dataset/review/review_test_data.bin",
+        }
     }
 
     if data_name not in dataset_paths:
