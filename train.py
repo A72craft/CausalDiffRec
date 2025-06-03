@@ -215,8 +215,8 @@ def test_epoch(datasets, epoch, models, device, bestPerformance, num_user, item_
     rec_dict = get_rec_list(user_set, scores, num_user)
     # print("recommendation list")
 
-    measure = ranking_evaluation(origin_inter, rec_dict, [10, 20])
-    measure_index = measure.index('Top 20\n')
+    measure = ranking_evaluation(origin_inter, rec_dict, [10,15,20,25,50])
+    measure_index = measure.index('Top 50\n')
     measure_input = measure[measure_index:]
     best_epoch = fast_evaluation(epoch, measure_input, bestPerformance)
     print(best_epoch)

@@ -3,7 +3,8 @@ import numpy as np
 import sys
 import os
 
-MIN_CONNECTIONS = 3  #global variable for minimum connections
+MIN_APP_CONNECTIONS = 0  # Minimum connections for apps/items
+MIN_AUTHOR_CONNECTIONS = 4# Minimum connections for authors/users
 
 def main():
     if len(sys.argv) < 2:
@@ -14,18 +15,22 @@ def main():
     
     df = pd.read_csv(path)
     df = df[['app_id', 'author']].drop_duplicates().reset_index(drop=True)
-    
-    #filter out entities with less than MIN_CONNECTIONS connections
+
+
     while True:
+        # Calculate connection counts separately
         app_counts = df['app_id'].value_counts()
         author_counts = df['author'].value_counts()
         
-        valid_apps = app_counts[app_counts >= MIN_CONNECTIONS].index
-        valid_authors = author_counts[author_counts >= MIN_CONNECTIONS].index
+        # Apply separate thresholds
+        valid_apps = app_counts[app_counts >= MIN_APP_CONNECTIONS].index
+        valid_authors = author_counts[author_counts >= MIN_AUTHOR_CONNECTIONS].index
         
         prev_size = len(df)
+        # Filter using both conditions
         df = df[df['app_id'].isin(valid_apps) & df['author'].isin(valid_authors)]
         
+        # Break if no changes
         if len(df) == prev_size:
             break
     

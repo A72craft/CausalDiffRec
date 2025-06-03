@@ -82,7 +82,6 @@ def save_sparse_matrix_to_pickle(sparse_matrix, file_path):
 
 def fast_evaluation(epoch, measure, bestPerformance):
     print('Evaluating the model...')
-
     if len(bestPerformance) > 0:
         count = 0
         performance = {}
@@ -107,7 +106,7 @@ def fast_evaluation(epoch, measure, bestPerformance):
         bestPerformance.append(performance)
 
     print('-' * 120)
-    print('Real-Time Ranking Performance ' + ' (Top-' + str(20) + ' Item Recommendation)')
+    print('Real-Time Ranking Performance ' + ' (Top-' + str(50) + ' Item Recommendation)')
     measure = [m.strip() for m in measure[1:]]
     print('*Current Performance*')
     print('Epoch:', str(epoch + 1) + ',', '  |  '.join(measure))
